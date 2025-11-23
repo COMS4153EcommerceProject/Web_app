@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { orderApi, userApi, productApi, compositeApi } from "./apiFactory";
 
-console.log("[BOOT] index.js loaded");
-
 export default function App() {
   const [root, setRoot] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -41,6 +39,41 @@ export default function App() {
     } catch (e) { setError(String(e)); }
   }
 
+  const [productPing, setProductPing] = useState(null);
+
+  async function pingProduct() {
+    setError("");
+    try {
+      const base = process.env.REACT_APP_PRODUCT_BASE_URL;
+      if (!base) throw new Error("REACT_APP_PRODUCT_BASE undefined");
+
+      const r = await fetch(`${base}/`, { method: "GET" });
+      if (!r.ok) throw new Error(`Product / -> HTTP ${r.status}`);
+      const data = await r.json();
+      setProductPing(data);
+
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+  // const [compositePing, setCompositePing] = useState(null);
+
+  // async function pingComposite() {
+  //   setError("");
+  //   try {
+  //     const base = process.env.REACT_APP_COMPOSITE_BASE;
+  //     if (!base) throw new Error("REACT_APP_COMPOSITE_BASE undefined");
+
+  //     const r = await fetch(`${base}/`, { method: "GET" });
+  //     if (!r.ok) throw new Error(`Composite / -> HTTP ${r.status}`);
+  //     const data = await r.json();
+  //     setCompositePing(data);
+  //   } catch (e) {
+  //     setError(String(e));
+  //   }
+  // }
+
   return (
     <div style={{ maxWidth: 900, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
       <h1>Order Management UI</h1>
@@ -61,6 +94,22 @@ export default function App() {
           <pre style={pre}>{error}</pre>
         </section>
       )}
+
+      <section style={card}>
+        <h2>Product: quick ping</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <button onClick={pingProduct}>Ping Product “/”</button>
+        </div>
+        <pre style={pre}>{productPing ? JSON.stringify(productPing, null, 2) : "—"}</pre>
+      </section>
+
+      {/* <section style={card}>
+        <h2>Composite: quick ping</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <button onClick={pingComposite}>Ping Composite “/”</button>
+        </div>
+        <pre style={pre}>{compositePing ? JSON.stringify(compositePing, null, 2) : "—"}</pre>
+      </section> */}
     </div>
   );
 }

@@ -5,6 +5,7 @@ export default function App() {
   const [root, setRoot] = useState(null);
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState("");
+  const [products, setProducts] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -15,27 +16,60 @@ export default function App() {
     })();
   }, []);
 
-  async function refreshOrders() {
+  const [orderPing, setOrderPing] = useState(null);
+
+  // async function pingOrder() {
+  //   setError("");
+  //   try {
+  //     const base = process.env.REACT_APP_ORDER_API_BASE_URL;
+  //     if (!base) throw new Error("Order base URL undefined");
+  //     const r = await fetch(`${base}/healthz`);
+  //     if (!r.ok) throw new Error(`Order /healthz -> HTTP ${r.status}`);
+  //     setOrderPing(await r.json());
+  //   } catch (e) {
+  //     setError(String(e));
+  //   }
+  // }
+
+  const [orderPingRaw, setOrderPingRaw] = useState("");
+
+  async function pingOrder() {
+    setError("");
+    setOrderPingRaw("");
+
+    try {
+      const base = process.env.REACT_APP_ORDER_API_BASE_URL;
+      if (!base) throw new Error("REACT_APP_ORDER_API_BASE_URL undefined");
+
+      const url = `${base.replace(/\/$/, "")}/`;
+      const r = await fetch(url, { method: "GET" });
+
+      const text = await r.text(); // 关键：先拿原文
+      setOrderPingRaw(`HTTP ${r.status}\n${text}`);
+
+      if (!r.ok) throw new Error(`Order / -> HTTP ${r.status}`);
+
+    } catch (e) {
+      setError(String(e));
+    }
+  }
+
+
+  async function getOrders() {
     setError("");
     try {
-      const r = await orderApi.listOrders(); // optionally: { user_id: "uuid", status: "PAID" }
+      const r = await orderApi.listOrders();
       setOrders(Array.isArray(r.data) ? r.data : []);
+      console.log("listOrders raw:", r);
+      console.log("listOrders data:", r.data);
     } catch (e) { setError(String(e)); }
   }
 
-  async function quickCreateOrder() {
+  async function compositeListProducts() {
     setError("");
     try {
-      // NOTE: Your FastAPI models expect UUIDs and a specific shape.
-      // Replace with valid data that matches OrderCreate in your backend.
-      const example = {
-        user_id: "11111111-1111-1111-1111-111111111111",
-        status: "PENDING",
-        total_price: 0.0,
-      };
-      await orderApi.createOrder(example);
-      await refreshOrders();
-      alert("Order created (dummy payload)!");
+      const r = await compositeApi.listProducts();
+      setProducts(Array.isArray(r.data) ? r.data : []);
     } catch (e) { setError(String(e)); }
   }
 
@@ -44,8 +78,8 @@ export default function App() {
   async function pingProduct() {
     setError("");
     try {
-      const base = process.env.REACT_APP_PRODUCT_BASE_URL;
-      if (!base) throw new Error("REACT_APP_PRODUCT_BASE undefined");
+      const base = process.env.REACT_APP_PRODUCT_API_BASE_URL;
+      if (!base) throw new Error("REACT_APP_PRODUCT_API_BASE_URL undefined");
 
       const r = await fetch(`${base}/`, { method: "GET" });
       if (!r.ok) throw new Error(`Product / -> HTTP ${r.status}`);
@@ -57,22 +91,22 @@ export default function App() {
     }
   }
 
-  // const [compositePing, setCompositePing] = useState(null);
+  const [userPing, setUserPing] = useState(null);
 
-  // async function pingComposite() {
-  //   setError("");
-  //   try {
-  //     const base = process.env.REACT_APP_COMPOSITE_BASE;
-  //     if (!base) throw new Error("REACT_APP_COMPOSITE_BASE undefined");
+  async function pingUser() {
+    setError("");
+    try {
+      const base = process.env.REACT_APP_USER_API_BASE_URL;
+      if (!base) throw new Error("REACT_APP_USER_API_BASE_URL undefined");
 
-  //     const r = await fetch(`${base}/`, { method: "GET" });
-  //     if (!r.ok) throw new Error(`Composite / -> HTTP ${r.status}`);
-  //     const data = await r.json();
-  //     setCompositePing(data);
-  //   } catch (e) {
-  //     setError(String(e));
-  //   }
-  // }
+      const r = await fetch(`${base}/`, { method: "GET" });
+      if (!r.ok) throw new Error(`User / -> HTTP ${r.status}`);
+      const data = await r.json();
+      setUserPing(data);
+    } catch (e) {
+      setError(String(e));
+    }
+  }
 
   return (
     <div style={{ maxWidth: 900, margin: "2rem auto", fontFamily: "system-ui, sans-serif" }}>
@@ -82,10 +116,9 @@ export default function App() {
       <section style={card}>
         <h2>Orders</h2>
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <button onClick={refreshOrders}>listOrders</button>
-          <button onClick={quickCreateOrder}>Quick Create (demo)</button>
+          <button onClick={pingOrder}>GetOrders</button>
         </div>
-        <pre style={pre}>{JSON.stringify(orders, null, 2) || "—"}</pre>
+        <pre style={pre}>{orderPingRaw || "—"}</pre>
       </section>
 
       {error && (
@@ -103,14 +136,23 @@ export default function App() {
         <pre style={pre}>{productPing ? JSON.stringify(productPing, null, 2) : "—"}</pre>
       </section>
 
-      {/* <section style={card}>
+      <section style={card}>
+        <h2>User: quick ping</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <button onClick={pingUser}>Ping User “/”</button>
+        </div>
+        <pre style={pre}>{userPing ? JSON.stringify(userPing, null, 2) : "—"}</pre>
+      </section>
+
+      <section style={card}>
         <h2>Composite: quick ping</h2>
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-          <button onClick={pingComposite}>Ping Composite “/”</button>
+          <button onClick={compositeListProducts}>List Products via Composite</button>
         </div>
-        <pre style={pre}>{compositePing ? JSON.stringify(compositePing, null, 2) : "—"}</pre>
-      </section> */}
+        <pre style={pre}>{products.length ? JSON.stringify(products, null, 2) : "—"}</pre>
+      </section>
     </div>
+
   );
 }
 

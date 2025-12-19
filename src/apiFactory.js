@@ -77,6 +77,8 @@ export const productApi = (() => {
 export const compositeApi = (() => {
     const { req, toQS } = makeClient(process.env.REACT_APP_COMPOSITE_API_BASE_URL);
     return {
+        ping: () => req(`/`),
         listOrders: (params) => req(`/composite/orders${toQS(params)}`),
+        listProducts: (params) => req(`/composite/products${toQS(params)}`)
     };
 })();
